@@ -1,0 +1,31 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/generated_plugin_registrant.dart"
+  errors:
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    - avoid_unnecessary_containers
+    - avoid_print
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_final_fields
+    - prefer_final_locals
+    - sized_box_for_whitespace
+    - use_key_in_widget_constructors
+    - avoid_relative_lib_imports
+    - prefer_single_quotes
+    - always_declare_return_types
+    - avoid_empty_else
+    - avoid_init_to_null
+    - avoid_returning_null_for_void
+    - cancel_subscriptions
+    - close_sinks
+    - empty_statements
+    - null_closures
+    - unnecessary_statements
