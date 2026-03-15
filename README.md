@@ -1,6 +1,6 @@
 # Streamora
 
-Streamora is a premium cross-platform IPTV player app built with Flutter, featuring Xtream API integration for live TV, VOD (Video on Demand), and TV series streaming.
+Premium cross-platform IPTV player built with Flutter. Integrates Xtream API for live TV, VOD, and series streaming. MVP released with modern UI, caching, and Riverpod state management.
 
 ## Current Status: MVP Released
 
