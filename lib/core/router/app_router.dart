@@ -24,10 +24,14 @@ class AppRouter {
   static const String settings = '/settings';
   static const String player = '/player';
 
-  static GoRouter router(bool isAuthenticated) {
+  static GoRouter router(
+    bool isAuthenticated, {
+    String? initialLocation,
+    bool Function()? getAuthStatus,
+  }) {
     return GoRouter(
       navigatorKey: navigatorKey,
-      initialLocation: isAuthenticated ? live : splash,
+      initialLocation: initialLocation ?? (isAuthenticated ? live : splash),
       routes: [
         GoRoute(
           path: splash,
@@ -80,6 +84,23 @@ class AppRouter {
           },
         ),
       ],
+      redirect: (context, state) {
+        // Use dynamic auth check if provided, otherwise fall back to captured value
+        final isLoggedIn = getAuthStatus?.call() ?? isAuthenticated;
+        final isLoggingIn = state.matchedLocation == login || state.matchedLocation == splash;
+
+        // If not logged in and not on login/splash, redirect to login
+        if (!isLoggedIn && !isLoggingIn) {
+          return login;
+        }
+
+        // If logged in and on login/splash, redirect to live
+        if (isLoggedIn && isLoggingIn) {
+          return live;
+        }
+
+        return null;
+      },
     );
   }
 }

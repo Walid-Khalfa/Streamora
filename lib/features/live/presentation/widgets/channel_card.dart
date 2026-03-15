@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ChannelCard extends StatelessWidget {
@@ -6,6 +7,7 @@ class ChannelCard extends StatelessWidget {
   final String? iconUrl;
   final bool isFavorite;
   final VoidCallback onTap;
+  final VoidCallback? onFavoriteToggle;
 
   const ChannelCard({
     super.key,
@@ -13,6 +15,7 @@ class ChannelCard extends StatelessWidget {
     this.iconUrl,
     this.isFavorite = false,
     required this.onTap,
+    this.onFavoriteToggle,
   });
 
   @override
@@ -33,25 +36,49 @@ class ChannelCard extends StatelessWidget {
           children: [
             Expanded(
               flex: 3,
-              child: Container(
-                margin: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundLight,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: iconUrl != null
-                      ? Image.network(
-                          iconUrl!,
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholder();
-                          },
-                        )
-                      : _buildPlaceholder(),
-                ),
+              child: Stack(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: iconUrl != null && iconUrl!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: iconUrl!,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.contain,
+                              placeholder: (context, url) => _buildPlaceholder(),
+                              errorWidget: (context, url, error) => _buildPlaceholder(),
+                            )
+                          : _buildPlaceholder(),
+                    ),
+                  ),
+                  // Favorite button
+                  if (onFavoriteToggle != null)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: GestureDetector(
+                        onTap: onFavoriteToggle,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppColors.background.withOpacity(0.8),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: isFavorite ? AppColors.favoriteColor : AppColors.textTertiary,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             Expanded(
@@ -72,12 +99,14 @@ class ChannelCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 4),
-                    if (isFavorite)
-                      const Icon(
-                        Icons.favorite,
-                        color: AppColors.favoriteColor,
-                        size: 16,
+                    if (isFavorite && onFavoriteToggle == null)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4),
+                        child: Icon(
+                          Icons.favorite,
+                          color: AppColors.favoriteColor,
+                          size: 16,
+                        ),
                       ),
                   ],
                 ),
@@ -93,13 +122,13 @@ class ChannelCard extends StatelessWidget {
     return Container(
       width: 60,
       height: 60,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
           colors: AppColors.primaryGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.all(Radius.circular(30)),
       ),
       child: const Icon(
         Icons.live_tv,

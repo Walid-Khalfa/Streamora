@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/movie.dart';
 
 class MovieCard extends StatelessWidget {
   final Movie movie;
   final VoidCallback onTap;
+  final VoidCallback? onFavoriteToggle;
 
   const MovieCard({
     super.key,
     required this.movie,
     required this.onTap,
+    this.onFavoriteToggle,
   });
 
   @override
@@ -37,15 +40,24 @@ class MovieCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    movie.iconUrl != null
-                        ? Image.network(
-                            movie.iconUrl!,
+                    // Poster image
+                    movie.posterUrl != null && movie.posterUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: movie.posterUrl!,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return _buildPlaceholder();
-                            },
+                            placeholder: (context, url) => _buildPlaceholder(),
+                            errorWidget: (context, url, error) => _buildPlaceholder(),
                           )
-                        : _buildPlaceholder(),
+                        : movie.iconUrl != null && movie.iconUrl!.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: movie.iconUrl!,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => _buildPlaceholder(),
+                                errorWidget: (context, url, error) => _buildPlaceholder(),
+                              )
+                            : _buildPlaceholder(),
+                    
+                    // Rating badge
                     Positioned(
                       top: 8,
                       right: 8,
@@ -76,7 +88,29 @@ class MovieCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (movie.isFavorite)
+                    
+                    // Favorite button
+                    if (onFavoriteToggle != null)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: GestureDetector(
+                          onTap: onFavoriteToggle,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: AppColors.overlayDark,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              movie.isFavorite ? Icons.favorite : Icons.favorite_border,
+                              color: movie.isFavorite ? AppColors.favoriteColor : Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (movie.isFavorite)
                       const Positioned(
                         top: 8,
                         left: 8,
@@ -86,6 +120,8 @@ class MovieCard extends StatelessWidget {
                           size: 20,
                         ),
                       ),
+                    
+                    // Bottom info overlay
                     Positioned(
                       bottom: 0,
                       left: 0,

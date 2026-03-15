@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/router/app_router.dart';
+import '../providers/auth_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _urlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -25,24 +28,45 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() async {
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
-    // Simulate login
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() => _isLoading = false);
-
-    // Navigate to main app
-    if (mounted) {
-      // TODO: Use actual authentication
-    }
+    await ref.read(authProvider.notifier).login(
+      baseUrl: _urlController.text.trim(),
+      username: _usernameController.text.trim(),
+      password: _passwordController.text,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
+    // Listen for authentication state changes
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.isAuthenticated) {
+        // Navigate to main app on successful login
+        context.go(AppRouter.live);
+      } else if (next.status == AuthStatus.error && next.errorMessage != null) {
+        // Show error snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text(next.errorMessage!)),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -100,9 +124,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Server URL',
                   hint: 'https://example.com:port',
                   icon: Icons.link,
+                  keyboardType: TextInputType.url,
+                  textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter server URL';
+                    }
+                    if (!value.startsWith('http://') && !value.startsWith('https://')) {
+                      return 'URL must start with http:// or https://';
+                    }
+                    final uri = Uri.tryParse(value);
+                    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+                      return 'Please enter a valid URL';
                     }
                     return null;
                   },
@@ -113,9 +146,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Username',
                   hint: 'Enter your username',
                   icon: Icons.person_outline,
+                  textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter username';
+                    }
+                    if (value.length < 2) {
+                      return 'Username must be at least 2 characters';
                     }
                     return null;
                   },
@@ -127,6 +164,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   hint: 'Enter your password',
                   icon: Icons.lock_outline,
                   obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _login(),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword ? Icons.visibility_off : Icons.visibility,
@@ -140,6 +179,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter password';
                     }
+                    if (value.length < 2) {
+                      return 'Password must be at least 2 characters';
+                    }
                     return null;
                   },
                 ),
@@ -148,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
+                    onPressed: authState.isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -156,8 +198,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       elevation: 0,
+                      disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
                     ),
-                    child: _isLoading
+                    child: authState.isLoading
                         ? const SizedBox(
                             width: 24,
                             height: 24,
@@ -177,11 +220,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
                 Center(
-                  child: TextButton(
+                  child: TextButton.icon(
                     onPressed: () {
-                      // TODO: Implement M3U import
+                      _showM3UImportDialog();
                     },
-                    child: Text(
+                    icon: Icon(
+                      Icons.playlist_add,
+                      color: AppColors.primary.withOpacity(0.8),
+                    ),
+                    label: Text(
                       'Import M3U Playlist',
                       style: TextStyle(
                         color: AppColors.primary.withOpacity(0.8),
@@ -196,6 +243,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.backgroundLighter,
+                      width: 1,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -218,6 +269,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                // Test mode hint
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.warning.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: AppColors.warning,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Demo: Use http://your-server:port with your Xtream API credentials',
+                          style: TextStyle(
+                            color: AppColors.warning,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -234,6 +317,9 @@ class _LoginScreenState extends State<LoginScreen> {
     required String? Function(String?) validator,
     bool obscureText = false,
     Widget? suffixIcon,
+    TextInputType? keyboardType,
+    TextInputAction? textInputAction,
+    void Function(String)? onFieldSubmitted,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,6 +337,9 @@ class _LoginScreenState extends State<LoginScreen> {
           controller: controller,
           obscureText: obscureText,
           validator: validator,
+          keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          onFieldSubmitted: onFieldSubmitted,
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
@@ -275,10 +364,80 @@ class _LoginScreenState extends State<LoginScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.error, width: 1),
             ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.error, width: 2),
+            ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),
       ],
+    );
+  }
+
+  void _showM3UImportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.playlist_add, color: AppColors.primary),
+            SizedBox(width: 12),
+            Text(
+              'Import M3U Playlist',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'M3U playlist import is coming soon!',
+              style: TextStyle(
+                color: AppColors.textSecondary.withOpacity(0.8),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundLighter,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.schedule,
+                    color: AppColors.textTertiary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This feature will be available in a future update',
+                      style: TextStyle(
+                        color: AppColors.textTertiary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 }

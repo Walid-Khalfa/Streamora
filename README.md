@@ -2,6 +2,10 @@
 
 Streamora is a premium cross-platform IPTV player app built with Flutter, featuring Xtream API integration for live TV, VOD (Video on Demand), and TV series streaming.
 
+## Current Status: MVP Released
+
+The minimum viable product (MVP) is now complete with all core features implemented.
+
 ## Features
 
 ### Core Features
@@ -20,9 +24,17 @@ Streamora is a premium cross-platform IPTV player app built with Flutter, featur
 
 ### Technical
 - **Xtream Codes API** - Full integration with Xtream Codes compatible providers
-- **M3U Playlist Support** - Import playlists directly
-- **Secure Storage** - Encrypted credential storage
-- **Offline Support** - Cache management for better performance
+- **M3U Playlist Support** - Import playlists directly (coming soon)
+- **Secure Storage** - Encrypted credential storage using Flutter Secure Storage
+- **Offline Support** - Network detection and caching for better performance
+- **Dio Caching** - HTTP response caching with configurable policies
+
+### New in This Release
+- Network connectivity detection with offline banner
+- Cached network images for better performance
+- Shimmer loading placeholders
+- Custom error and loading state widgets
+- Pagination support for content lists
 
 ## Architecture
 
@@ -33,12 +45,12 @@ lib/
 ├── core/                    # Shared components
 │   ├── constants/           # App constants
 │   ├── errors/              # Failure classes
-│   ├── network/             # API client
-│   ├── router/              # Navigation
+│   ├── network/             # API client, network info
+│   ├── router/              # Navigation (GoRouter)
 │   ├── theme/               # Styling
 │   ├── usecases/            # Base use case
-│   ├── utils/               # Utilities
-│   └── widgets/             # Shared widgets
+│   ├── utils/               # Utilities (pagination)
+│   └── widgets/             # Shared widgets (error, loading, images)
 │
 └── features/                # Feature modules
     ├── auth/                # Authentication
@@ -122,20 +134,28 @@ You can also import M3U playlists directly for quick access.
 
 ## Roadmap
 
+### Completed (MVP)
 - [x] Project setup and architecture
 - [x] Authentication with Xtream API
-- [x] Live TV browsing
+- [x] Live TV browsing with categories
 - [x] VOD (Movies) browsing
-- [x] Series browsing
-- [x] Video player interface
-- [x] Favorites
-- [x] Search
-- [x] Settings
-- [ ] EPG implementation
-- [ ] Continue watching
-- [ ] Picture-in-picture
+- [x] Series browsing with seasons/episodes
+- [x] Video player interface with Chewie
+- [x] Favorites management
+- [x] Search functionality
+- [x] Settings with video quality options
+- [x] Network caching (Dio)
+- [x] Offline detection
+- [x] Secure credential storage
+
+### Future Features
+- [ ] EPG (Electronic Program Guide) implementation
+- [ ] Continue watching progress sync
+- [ ] Picture-in-picture mode
 - [ ] Chromecast support
 - [ ] Recording functionality
+- [ ] M3U playlist import
+- [ ] Multiple user profiles
 
 ## Contributing
 
